@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Halo CRM">
+<meta name="theme-color" content="#0A0A0A">
+<title>Halo CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Nunito+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #C9A84C;
+    --gold-light: #E8C96A;
+    --black: #0A0A0A;
+    --surface: #111111;
+    --surface2: #1A1A1A;
+    --surface3: #222222;
+    --text: #F0EDE6;
+    --text-dim: #888880;
+    --green: #22C55E;
+    --red: #EF4444;
+    --blue: #3B82F6;
+    --amber: #F59E0B;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { background: var(--black); color: var(--text); font-family: 'Nunito Sans', sans-serif; min-height: 100vh; overscroll-behavior: none; }
+
+  /* CONFIG SCREEN */
+  .config-screen {
+    position: fixed; inset: 0; background: var(--black);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000; padding: 20px;
+  }
+  .config-box {
+    background: var(--surface); border: 1px solid rgba(201,168,76,0.4);
+    border-radius: 12px; padding: 32px; max-width: 480px; width: 100%;
+  }
+  .config-title { font-family: 'Cormorant Garamond', serif; font-size: 28px; color: var(--gold); margin-bottom: 8px; }
+  .config-sub { color: var(--text-dim); font-size: 13px; margin-bottom: 24px; line-height: 1.6; }
+  .config-steps { margin-bottom: 24px; }
+  .config-step { display: flex; gap: 12px; margin-bottom: 14px; align-items: flex-start; }
+  .step-num { width: 24px; height: 24px; border-radius: 50%; background: rgba(201,168,76,0.2); border: 1px solid var(--gold); display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--gold); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .step-text { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+  .step-text strong { color: var(--text); }
+  .step-text a { color: var(--gold); text-decoration: none; }
+  .url-input { width: 100%; background: var(--surface3); border: 1px solid rgba(201,168,76,0.3); border-radius: 6px; padding: 10px 12px; color: var(--text); font-size: 13px; font-family: 'Nunito Sans', sans-serif; outline: none; margin-top: 16px; }
+  .url-input::placeholder { color: var(--text-dim); }
+  .config-error { color: var(--red); font-size: 12px; margin-top: 8px; display: none; }
+
+  /* HEADER */
+  .header { background: var(--surface); border-bottom: 1px solid rgba(201,168,76,0.2); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-ring { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--gold); box-shadow: 0 0 12px rgba(201,168,76,0.3); display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, #1a1400 0%, #0A0A0A 100%); flex-shrink: 0; }
+  .logo-inner { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--gold-light); opacity: 0.6; }
+  .logo-text { line-height: 1; }
+  .logo-name { font-family: 'Cormorant Garamond', serif; font-size: 17px; font-weight: 700; color: var(--gold); letter-spacing: 3px; }
+  .logo-sub { font-size: 8px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; margin-top: 1px; }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .header-date { font-size: 11px; color: var(--text-dim); }
+  .sync-btn { background: none; border: 1px solid rgba(201,168,76,0.3); border-radius: 4px; padding: 4px 8px; color: var(--text-dim); font-size: 10px; cursor: pointer; font-family: 'Nunito Sans', sans-serif; letter-spacing: 1px; }
+  .sync-btn:active { background: rgba(201,168,76,0.1); }
+
+  /* SYNC STATUS */
+  .sync-bar { background: var(--surface2); padding: 6px 16px; font-size: 11px; color: var(--text-dim); display: none; align-items: center; gap: 8px; border-bottom: 1px solid rgba(201,168,76,0.1); }
+  .sync-bar.show { display: flex; }
+  .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); animation: pulse 1s infinite; }
+  .sync-dot.ok { background: var(--green); animation: none; }
+  .sync-dot.err { background: var(--red); animation: none; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  /* NAV */
+  .nav { background: var(--surface2); border-bottom: 1px solid rgba(201,168,76,0.15); display: flex; overflow-x: auto; scrollbar-width: none; }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav-btn { background: none; border: none; padding: 13px 18px; color: var(--text-dim); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; font-weight: 700; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; font-family: 'Nunito Sans', sans-serif; }
+  .nav-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+  /* CONTENT */
+  .content { padding: 16px; max-width: 860px; margin: 0 auto; padding-bottom: 40px; }
+  .divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(201,168,76,0.3), transparent); margin: 16px 0; }
+  .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+  .stat-card { background: var(--surface2); border: 1px solid rgba(201,168,76,0.15); border-radius: 8px; padding: 14px 16px; border-left: 3px solid var(--gold); }
+  .stat-label { font-size: 10px; color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+  .stat-value { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 700; color: var(--gold); line-height: 1; }
+  .stat-sub { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+  .section-title { font-size: 11px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; }
+  .page-title { font-family: 'Cormorant Garamond', serif; font-size: 24px; color: var(--gold); margin-bottom: 16px; }
+  .card { background: var(--surface2); border: 1px solid rgba(201,168,76,0.15); border-radius: 8px; padding: 14px; margin-bottom: 10px; }
+  .card.today { box-shadow: 0 0 20px rgba(201,168,76,0.15); border-color: rgba(201,168,76,0.5); }
+  .card.past { opacity: 0.55; }
+  .badge { display: inline-block; border-radius: 4px; padding: 2px 8px; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+
+  /* BUTTONS */
+  .btn { background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%); color: var(--black); border: none; border-radius: 6px; padding: 10px 18px; font-size: 13px; font-weight: 700; cursor: pointer; letter-spacing: 0.5px; font-family: 'Nunito Sans', sans-serif; }
+  .btn:active { opacity: 0.8; }
+  .btn-outline { background: var(--surface3); color: var(--text); border: 1px solid rgba(201,168,76,0.3); border-radius: 6px; padding: 10px 18px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Nunito Sans', sans-serif; }
+  .btn-sm { padding: 5px 12px; font-size: 11px; }
+  .btn-danger { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; }
+  .btn-green { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.3); border-radius: 6px; }
+
+  /* FORM */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+  @media (max-width: 480px) { .form-grid { grid-template-columns: 1fr; } }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 10px; color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 5px; }
+  .field input, .field select, .field textarea { width: 100%; background: var(--surface3); border: 1px solid rgba(201,168,76,0.25); border-radius: 6px; padding: 9px 12px; color: var(--text); font-size: 14px; font-family: 'Nunito Sans', sans-serif; outline: none; appearance: none; -webkit-appearance: none; }
+  .field textarea { resize: vertical; min-height: 70px; }
+  .check-row { display: flex; gap: 20px; margin-bottom: 12px; flex-wrap: wrap; }
+  .check-label { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text-dim); cursor: pointer; }
+  .check-label input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--gold); }
+  .cost-preview { background: var(--surface3); border-radius: 6px; padding: 10px 14px; font-size: 13px; color: var(--text-dim); margin-bottom: 12px; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* FILTER */
+  .filter-row { display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+  .filter-row::-webkit-scrollbar { display: none; }
+  .pill { background: var(--surface2); border: 1px solid rgba(201,168,76,0.2); border-radius: 20px; padding: 5px 14px; font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap; color: var(--text-dim); font-family: 'Nunito Sans', sans-serif; }
+
+  /* LEADS */
+  .lead-card { background: var(--surface2); border: 1px solid rgba(201,168,76,0.15); border-radius: 8px; padding: 14px; margin-bottom: 10px; }
+  .lead-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
+  .lead-name { font-weight: 700; font-size: 15px; }
+  .lead-meta { font-size: 12px; color: var(--text-dim); margin-top: 3px; line-height: 1.6; }
+  .lead-quote { font-family: 'Cormorant Garamond', serif; font-size: 22px; color: var(--gold); }
+  .lead-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; justify-content: flex-end; }
+  .lead-note { font-size: 12px; color: var(--text-dim); font-style: italic; margin-top: 6px; }
+  .add-btn-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+
+  /* CALC */
+  .calc-result { background: var(--surface2); border: 1px solid rgba(201,168,76,0.35); border-radius: 10px; padding: 18px; margin-top: 20px; }
+  .calc-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(201,168,76,0.12); font-size: 14px; }
+  .calc-row:last-child { border-bottom: none; }
+  .calc-label { color: var(--text-dim); }
+
+  /* MODAL */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; overflow-y: auto; padding: 20px 16px; }
+  .modal { background: var(--surface); border: 1px solid rgba(201,168,76,0.35); border-radius: 12px; padding: 20px; max-width: 600px; margin: 0 auto; }
+  .modal-title { font-family: 'Cormorant Garamond', serif; font-size: 20px; color: var(--gold); margin-bottom: 16px; }
+
+  /* MISC */
+  .empty { text-align: center; padding: 50px 20px; color: var(--text-dim); }
+  .empty-icon { font-size: 28px; margin-bottom: 12px; }
+  .today-pill { font-size: 10px; color: var(--gold); letter-spacing: 2px; font-weight: 700; margin-bottom: 6px; }
+  .position-tag { font-size: 12px; color: var(--text-dim); margin-top: 5px; }
+  .position-tag strong { color: var(--text); }
+  .loading { text-align: center; padding: 40px; color: var(--text-dim); }
+  .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid rgba(201,168,76,0.3); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 8px; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- CONFIG SCREEN -->
+<div class="config-screen" id="configScreen">
+  <div class="config-box">
+    <div class="config-title">HALO CRM</div>
+    <div class="config-sub">One-time setup — connect your Google Sheet to get started. Your data will sync automatically across all devices.</div>
+    <div class="config-steps">
+      <div class="config-step">
+        <div class="step-num">1</div>
+        <div class="step-text">Go to <a href="https://script.google.com" target="_blank">script.google.com</a> and create a <strong>New Project</strong></div>
+      </div>
+      <div class="config-step">
+        <div class="step-num">2</div>
+        <div class="step-text">Delete any existing code and paste in the <strong>Code.gs</strong> file provided</div>
+      </div>
+      <div class="config-step">
+        <div class="step-num">3</div>
+        <div class="step-text">Click <strong>Deploy → New Deployment → Web App</strong>. Set access to <strong>"Anyone"</strong> and click Deploy</div>
+      </div>
+      <div class="config-step">
+        <div class="step-num">4</div>
+        <div class="step-text">Copy the <strong>Web App URL</strong> and paste it below</div>
+      </div>
+    </div>
+    <input class="url-input" type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/..." />
+    <div class="config-error" id="configError">Could not connect — please check the URL and try again.</div>
+    <div style="margin-top:16px;">
+      <button class="btn" onclick="saveConfig()">Connect & Launch</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" style="display:none;">
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-ring"><div class="logo-inner"></div></div>
+    <div class="logo-text">
+      <div class="logo-name">HALO</div>
+      <div class="logo-sub">Experiences</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="header-date" id="headerDate"></div>
+    <button class="sync-btn" onclick="loadLeads()">↻ SYNC</button>
+  </div>
+</div>
+
+<div class="sync-bar" id="syncBar">
+  <div class="sync-dot" id="syncDot"></div>
+  <span id="syncMsg">Syncing...</span>
+</div>
+
+<div class="nav">
+  <button class="nav-btn active" onclick="showTab('dashboard')">Dashboard</button>
+  <button class="nav-btn" onclick="showTab('leads')">Leads</button>
+  <button class="nav-btn" onclick="showTab('diary')">Diary</button>
+  <button class="nav-btn" onclick="showTab('calculator')">Calculator</button>
+</div>
+
+<div class="content">
+  <div id="tab-dashboard">
+    <div style="font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--gold);margin-bottom:4px;" id="greeting"></div>
+    <div style="color:var(--text-dim);font-size:13px;margin-bottom:18px;">Here's your Halo overview.</div>
+    <div class="stat-grid" id="statGrid"></div>
+    <div class="divider"></div>
+    <div id="dashboardContent"></div>
+  </div>
+
+  <div id="tab-leads" style="display:none;">
+    <div class="add-btn-row">
+      <div class="page-title" style="margin-bottom:0;">Leads</div>
+      <button class="btn" onclick="openForm()">+ Add Lead</button>
+    </div>
+    <div class="filter-row" id="filterRow"></div>
+    <div id="leadsList"></div>
+  </div>
+
+  <div id="tab-diary" style="display:none;">
+    <div class="page-title">Diary</div>
+    <div id="diaryContent"></div>
+  </div>
+
+  <div id="tab-calculator" style="display:none;">
+    <div class="page-title">Quote Calculator</div>
+    <div style="color:var(--text-dim);font-size:13px;margin-bottom:20px;">Based on your actual cost model</div>
+    <div class="field"><label>Paid Miles (pickup to destination only)</label><input type="number" id="calcPaidMiles" placeholder="e.g. 165" oninput="updateCalc()" inputmode="numeric"></div>
+    <div class="field"><label>Total Miles (full round trip inc. deadhead)</label><input type="number" id="calcMiles" placeholder="e.g. 361" oninput="updateCalc()" inputmode="numeric"></div>
+    <div class="check-row">
+      <label class="check-label"><input type="checkbox" id="calcUnsociable" onchange="updateCalc()"> Unsociable hours</label>
+      <label class="check-label"><input type="checkbox" id="calcReturn" onchange="updateCalc()"> Return journey (separate day)</label>
+      <label class="check-label"><input type="checkbox" id="calcVClass" onchange="updateCalc()"> V-Class</label>
+    </div>
+    <div id="calcResult" style="display:none;" class="calc-result">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:15px;color:var(--gold);letter-spacing:1px;margin-bottom:12px;">ESTIMATE</div>
+      <div class="calc-row"><span class="calc-label">Paid miles</span><span id="rPaidMiles"></span></div>
+      <div class="calc-row"><span class="calc-label">Total miles (inc. deadhead)</span><span id="rTotalMiles"></span></div>
+      <div class="calc-row"><span class="calc-label">Running costs</span><span id="rCost" style="color:var(--red);font-weight:700;"></span></div>
+      <div class="calc-row"><span class="calc-label">Price at £3/mile</span><span id="rPrice3" style="color:var(--text-dim);"></span></div>
+      <div class="calc-row"><span class="calc-label">Price at £3.50/mile</span><span id="rPrice35" style="color:var(--text-dim);"></span></div>
+      <div class="calc-row"><span class="calc-label">Uber benchmark</span><span id="rUber" style="color:var(--amber);"></span></div>
+      <div class="calc-row"><span class="calc-label" style="font-weight:700;color:var(--text);">Suggested quote</span><span id="rSuggested" style="font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--gold);"></span></div>
+      <div class="calc-row"><span class="calc-label">Estimated margin</span><span id="rMargin" style="color:var(--green);font-weight:700;"></span></div>
+      <div id="calcNotes" style="font-size:11px;color:var(--text-dim);margin-top:10px;line-height:1.6;"></div>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:6px;">C-Class: Fuel 22p · Depreciation 20p · Wear 5p = 47p/mile total</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end mainApp -->
+
+<!-- FORM MODAL -->
+<div class="overlay" id="formModal" style="display:none;">
+  <div class="modal">
+    <div class="modal-title" id="formTitle">New Lead</div>
+    <div class="form-grid">
+      <div class="field"><label>Customer Name</label><input type="text" id="fName" placeholder="e.g. Angela"></div>
+      <div class="field"><label>Phone / WhatsApp</label><input type="tel" id="fPhone" placeholder="07..."></div>
+      <div class="field"><label>Source</label>
+        <select id="fSource"><option>Bark</option><option>Website</option><option>WhatsApp Direct</option><option>Referral</option><option>Other</option></select>
+      </div>
+      <div class="field"><label>Status</label>
+        <select id="fStatus"><option>New</option><option>Quoted</option><option>Won</option><option>Lost</option><option>Passed</option></select>
+      </div>
+      <div class="field"><label>Pickup Location / Postcode</label><input type="text" id="fPickup" placeholder="e.g. TR26 2ET"></div>
+      <div class="field"><label>Destination</label><input type="text" id="fDestination" placeholder="e.g. Bristol Airport"></div>
+      <div class="field"><label>Date</label><input type="date" id="fDate"></div>
+      <div class="field"><label>Pickup Time</label><input type="time" id="fTime"></div>
+      <div class="field"><label>Passengers</label>
+        <select id="fPax"><option>1</option><option value="1-3" selected>1-3</option><option>2</option><option>3</option><option>4</option><option>4+</option></select>
+      </div>
+      <div class="field"><label>Suitcases</label>
+        <select id="fBags"><option>0 - Hand luggage</option><option selected>1</option><option>2</option><option>3</option><option>4+</option></select>
+      </div>
+      <div class="field"><label>Paid Miles (route only)</label><input type="number" id="fPaidMiles" placeholder="e.g. 165" oninput="updateFormPreview()" inputmode="numeric"></div>
+      <div class="field"><label>Total Miles (full round trip)</label><input type="number" id="fMiles" placeholder="e.g. 361" oninput="updateFormPreview()" inputmode="numeric"></div>
+      <div class="field"><label>Quote (£)</label><input type="number" id="fQuote" placeholder="e.g. 325" oninput="updateFormPreview()" inputmode="numeric"></div>
+      <div class="field"><label>Vehicle</label>
+        <select id="fVehicle"><option>C-Class</option><option>V-Class</option></select>
+      </div>
+    </div>
+    <div class="check-row">
+      <label class="check-label"><input type="checkbox" id="fUnsociable"> Unsociable hours</label>
+      <label class="check-label"><input type="checkbox" id="fReturn"> Return journey</label>
+    </div>
+    <div class="field"><label>Notes</label><textarea id="fNotes" placeholder="e.g. Price sensitive, A2B quoted £590 one way..."></textarea></div>
+    <div class="cost-preview" id="formPreview" style="display:none;"></div>
+    <input type="hidden" id="fEditId" value="">
+    <div class="btn-row">
+      <button class="btn" onclick="saveLead()">Save</button>
+      <button class="btn-outline" onclick="closeForm()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONSTANTS ───────────────────────────────────────────────────────────────
+const CPM_C = 0.47;   // C-Class: fuel 22p + depreciation 20p + wear 5p
+const CPM_V = 0.60;   // V-Class: higher fuel + depreciation
+const STATUS_COLORS = { New:'#3B82F6', Quoted:'#F59E0B', Won:'#22C55E', Lost:'#EF4444', Passed:'#6B7280' };
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let leads = [];
+let activeFilter = 'All';
+let currentTab = 'dashboard';
+let scriptUrl = '';
+let syncing = false;
+
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+function saveConfig() {
+  const url = document.getElementById('scriptUrl').value.trim();
+  if (!url.includes('script.google.com')) {
+    showConfigError('Please enter a valid Google Apps Script URL');
+    return;
+  }
+  localStorage.setItem('halo-script-url', url);
+  scriptUrl = url;
+  launchApp();
+}
+
+function showConfigError(msg) {
+  const el = document.getElementById('configError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function launchApp() {
+  document.getElementById('configScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'block';
+  setHeaderDate();
+  setGreeting();
+  loadLeads();
+}
+
+// ─── API ──────────────────────────────────────────────────────────────────────
+async function api(action, data = {}) {
+  const payload = { action, ...data };
+  try {
+    const res = await fetch(scriptUrl, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    return await res.json();
+  } catch(e) {
+    // Fallback to GET for CORS issues
+    try {
+      const params = new URLSearchParams({ action });
+      const res = await fetch(`${scriptUrl}?${params}`);
+      return await res.json();
+    } catch(e2) {
+      return { success: false, error: e2.toString() };
+    }
+  }
+}
+
+async function loadLeads() {
+  showSync('Syncing with Google Sheets...', 'loading');
+  try {
+    const result = await api('getLeads');
+    if (result.success) {
+      leads = result.leads || [];
+      // Also cache locally
+      localStorage.setItem('halo-leads-cache', JSON.stringify(leads));
+      showSync('Synced ✓', 'ok');
+      setTimeout(() => hideSyncBar(), 2000);
+    } else {
+      // Fall back to local cache
+      const cached = localStorage.getItem('halo-leads-cache');
+      if (cached) leads = JSON.parse(cached);
+      showSync('Using cached data — check connection', 'err');
+    }
+  } catch(e) {
+    const cached = localStorage.getItem('halo-leads-cache');
+    if (cached) leads = JSON.parse(cached);
+    showSync('Offline — showing cached data', 'err');
+  }
+  render();
+}
+
+// ─── SYNC BAR ─────────────────────────────────────────────────────────────────
+function showSync(msg, state) {
+  const bar = document.getElementById('syncBar');
+  const dot = document.getElementById('syncDot');
+  const msgEl = document.getElementById('syncMsg');
+  bar.classList.add('show');
+  dot.className = 'sync-dot' + (state === 'ok' ? ' ok' : state === 'err' ? ' err' : '');
+  msgEl.textContent = msg;
+}
+function hideSyncBar() { document.getElementById('syncBar').classList.remove('show'); }
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function fmt(n) { return '£' + Math.round(Number(n)); }
+function cpm(vClass) { return vClass ? CPM_V : CPM_C; }
+function estimateCost(miles, vClass) { return Math.round(miles * cpm(vClass)); }
+function paidPrice(paidMiles, rate) { return Math.ceil(paidMiles * rate / 5) * 5; }
+function positionTime(t, m) {
+  if (!t || !m) return null;
+  const [h, min] = t.split(':').map(Number);
+  const total = h * 60 + min;
+  const drive = Math.ceil((m / 50) * 60) + 15;
+  const leave = ((total - drive) % 1440 + 1440) % 1440;
+  return String(Math.floor(leave / 60)).padStart(2,'0') + ':' + String(leave % 60).padStart(2,'0');
+}
+function today() { return new Date().toISOString().split('T')[0]; }
+function thisMonth() { return new Date().toISOString().slice(0,7); }
+function dateLabel(d) { if (!d) return 'Date TBC'; return new Date(d+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}); }
+function dateLabelLong(d) { if (!d) return 'Date TBC'; return new Date(d+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}); }
+function badge(s) { const c = STATUS_COLORS[s]||'#888'; return `<span class="badge" style="background:${c}22;color:${c};border:1px solid ${c}44;">${s}</span>`; }
+function setHeaderDate() { document.getElementById('headerDate').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}); }
+function setGreeting() { const h=new Date().getHours(); document.getElementById('greeting').textContent=`Good ${h<12?'morning':h<18?'afternoon':'evening'}, Edward.`; }
+
+// ─── TAB ──────────────────────────────────────────────────────────────────────
+function showTab(tab) {
+  currentTab = tab;
+  ['dashboard','leads','diary','calculator'].forEach(t => { document.getElementById('tab-'+t).style.display = t===tab?'block':'none'; });
+  document.querySelectorAll('.nav-btn').forEach((b,i) => { b.classList.toggle('active', ['dashboard','leads','diary','calculator'][i]===tab); });
+  render();
+}
+
+function render() {
+  if (currentTab==='dashboard') renderDashboard();
+  if (currentTab==='leads') renderLeads();
+  if (currentTab==='diary') renderDiary();
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function renderDashboard() {
+  const t=today(), tm=thisMonth();
+  const todayJobs=leads.filter(l=>l.date===t&&l.status==='Won');
+  const outstanding=leads.filter(l=>l.status==='Quoted');
+  const wonJobs=leads.filter(l=>l.status==='Won');
+  const monthRev=wonJobs.filter(l=>l.date?.startsWith(tm)).reduce((a,l)=>a+Number(l.quote||0),0);
+  const monthCost=wonJobs.filter(l=>l.date?.startsWith(tm)).reduce((a,l)=>a+estimateCost(l.miles||0, l.vehicle==='V-Class'),0);
+
+  document.getElementById('statGrid').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Today's Jobs</div><div class="stat-value">${todayJobs.length}</div><div class="stat-sub">${todayJobs.length===0?'Nothing confirmed':'Confirmed'}</div></div>
+    <div class="stat-card" style="border-left-color:#E8C96A"><div class="stat-label">Awaiting Reply</div><div class="stat-value" style="color:#E8C96A">${outstanding.length}</div><div class="stat-sub">Quotes sent</div></div>
+    <div class="stat-card" style="border-left-color:#22C55E"><div class="stat-label">Month Revenue</div><div class="stat-value" style="color:#22C55E">${fmt(monthRev)}</div><div class="stat-sub">Confirmed bookings</div></div>
+    <div class="stat-card" style="border-left-color:#22C55E"><div class="stat-label">Month Margin</div><div class="stat-value" style="color:#22C55E">${fmt(monthRev-monthCost)}</div><div class="stat-sub">After ~${fmt(monthCost)} costs</div></div>`;
+
+  let html='';
+  if (todayJobs.length>0) {
+    html+=`<div class="section-title">Today's Schedule</div>`;
+    todayJobs.forEach(j=>{
+      const pt=positionTime(j.time,Number(j.miles));
+      html+=`<div class="card today"><div style="display:flex;justify-content:space-between;gap:10px;"><div><div style="font-weight:700;font-size:15px;margin-bottom:4px;">${j.name}</div><div style="color:var(--text-dim);font-size:13px;">${j.pickup} → ${j.destination}</div><div style="color:var(--gold);font-size:13px;margin-top:4px;">Pickup: ${j.time||'TBC'}</div>${pt?`<div class="position-tag">🚗 Leave Wadebridge by <strong>${pt}</strong></div>`:''}</div><div style="text-align:right;flex-shrink:0;"><div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--gold);">${fmt(j.quote)}</div><div style="font-size:11px;color:var(--text-dim);">${j.vehicle||'C-Class'} · ${j.pax} pax</div></div></div></div>`;
+    });
+    html+=`<div class="divider"></div>`;
+  }
+
+  if (outstanding.length>0) {
+    html+=`<div class="section-title">Outstanding Quotes</div>`;
+    outstanding.forEach(l=>{
+      html+=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><div><div style="font-weight:600;">${l.name} <span style="color:var(--text-dim);font-weight:400;font-size:12px;">· ${l.source}</span></div><div style="color:var(--text-dim);font-size:12px;margin-top:2px;">${l.pickup} → ${l.destination} · ${dateLabel(l.date)}</div></div><div style="display:flex;gap:8px;align-items:center;flex-shrink:0;"><span style="font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--gold);">${l.quote?fmt(l.quote):'—'}</span><button class="btn btn-sm btn-green" onclick="updateStatus('${l.id}','Won')">Won</button><button class="btn-outline btn-sm btn-danger" onclick="updateStatus('${l.id}','Lost')">Lost</button></div></div></div>`;
+    });
+  }
+
+  if (!todayJobs.length&&!outstanding.length) html=`<div class="empty"><div class="empty-icon">✦</div><div>No active leads or jobs today.</div><div style="margin-top:14px;"><button class="btn" onclick="showTab('leads');openForm()">Add a Lead</button></div></div>`;
+  document.getElementById('dashboardContent').innerHTML=html;
+}
+
+// ─── LEADS ────────────────────────────────────────────────────────────────────
+function renderLeads() {
+  const statuses=['All','New','Quoted','Won','Lost','Passed'];
+  document.getElementById('filterRow').innerHTML=statuses.map(s=>{
+    const c=s==='All'?'#C9A84C':(STATUS_COLORS[s]||'#C9A84C');
+    const active=activeFilter===s;
+    return `<button class="pill" onclick="setFilter('${s}')" style="${active?`color:${c};border-color:${c}44;background:${c}18;`:''}">${s}</button>`;
+  }).join('');
+
+  const sorted=[...leads].filter(l=>activeFilter==='All'||l.status===activeFilter).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  if (!sorted.length) { document.getElementById('leadsList').innerHTML=`<div class="empty"><div class="empty-icon">✦</div><div>No leads yet.</div></div>`; return; }
+
+  document.getElementById('leadsList').innerHTML=sorted.map(l=>{
+    const c=STATUS_COLORS[l.status]||'#C9A84C';
+    const vClass=l.vehicle==='V-Class';
+    const cost=l.miles?estimateCost(l.miles,vClass):null;
+    const margin=cost&&l.quote?Number(l.quote)-cost:null;
+    return `<div class="lead-card" style="border-left:3px solid ${c};">
+      <div class="lead-header">
+        <div>
+          <div class="lead-name">${l.name} ${badge(l.status)} <span style="font-size:11px;color:var(--text-dim);font-weight:400;">${l.source}</span></div>
+          <div class="lead-meta">${l.pickup} → ${l.destination}<br>
+          ${dateLabel(l.date)}${l.time?' · '+l.time:''}${l.pax?' · '+l.pax+' pax':''}${l.vehicle?' · '+l.vehicle:''}
+          ${l.miles?`<br>${l.miles} mi total · Cost ~${fmt(cost)}${margin!==null?' · Margin ~<span style="color:var(--green)">'+fmt(margin)+'</span>':''}`:''}</div>
+          ${l.notes?`<div class="lead-note">"${l.notes}"</div>`:''}
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          ${l.quote?`<div class="lead-quote">${fmt(l.quote)}</div>`:''}
+          ${l.phone?`<div style="font-size:11px;color:var(--text-dim);">${l.phone}</div>`:''}
+        </div>
+      </div>
+      <div class="lead-actions">
+        ${l.status==='New'?`<button class="btn-outline btn-sm" onclick="updateStatus('${l.id}','Quoted')">Mark Quoted</button>`:''}
+        ${l.status==='Quoted'?`<button class="btn btn-sm btn-green" onclick="updateStatus('${l.id}','Won')">Won</button><button class="btn-outline btn-sm btn-danger" onclick="updateStatus('${l.id}','Lost')">Lost</button>`:''}
+        <button class="btn-outline btn-sm" onclick="editLead('${l.id}')">Edit</button>
+        <button class="btn-outline btn-sm btn-danger" onclick="deleteLead('${l.id}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── DIARY ────────────────────────────────────────────────────────────────────
+function renderDiary() {
+  const t=today();
+  const won=[...leads.filter(l=>l.status==='Won')].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  if (!won.length) { document.getElementById('diaryContent').innerHTML=`<div class="empty"><div class="empty-icon">✦</div><div>No confirmed bookings yet.</div></div>`; return; }
+
+  document.getElementById('diaryContent').innerHTML=won.map(j=>{
+    const isToday=j.date===t, isPast=j.date&&j.date<t;
+    const pt=positionTime(j.time,Number(j.miles));
+    const vClass=j.vehicle==='V-Class';
+    const cost=j.miles?estimateCost(j.miles,vClass):null;
+    const margin=cost&&j.quote?Number(j.quote)-cost:null;
+    return `<div class="card${isToday?' today':isPast?' past':''}">
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <div style="flex:1;">
+          ${isToday?`<div class="today-pill">● TODAY</div>`:''}
+          ${isPast?`<div style="font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:4px;">COMPLETED</div>`:''}
+          <div style="font-weight:700;font-size:15px;margin-bottom:4px;">${j.name}</div>
+          <div style="color:var(--text-dim);font-size:13px;">${j.pickup} → ${j.destination}</div>
+          <div style="color:var(--gold);font-size:13px;margin-top:5px;font-weight:600;">${dateLabelLong(j.date)}${j.time?' · Pickup '+j.time:''}</div>
+          ${pt&&!isPast?`<div class="position-tag">🚗 Leave Wadebridge by <strong>${pt}</strong></div>`:''}
+          <div style="font-size:12px;color:var(--text-dim);margin-top:5px;">${j.vehicle||'C-Class'} · ${j.pax} pax · ${j.bags} bag${j.bags!=='1'?'s':''}${j.unsociable?' · 🌙 Unsociable':''}${j.returnJourney?' · ↩ Return':''}</div>
+          ${j.notes?`<div class="lead-note">"${j.notes}"</div>`:''}
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--gold);">${fmt(j.quote)}</div>
+          ${cost?`<div style="font-size:12px;color:var(--text-dim);">Cost ~${fmt(cost)}</div>`:''}
+          ${margin!==null?`<div style="font-size:13px;color:var(--green);font-weight:700;">Margin ~${fmt(margin)}</div>`:''}
+          <div style="margin-top:8px;"><button class="btn-outline btn-sm" onclick="editLead('${j.id}')">Edit</button></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── CALCULATOR ───────────────────────────────────────────────────────────────
+function updateCalc() {
+  const paidMiles=Number(document.getElementById('calcPaidMiles').value);
+  const totalMiles=Number(document.getElementById('calcMiles').value);
+  const unsociable=document.getElementById('calcUnsociable').checked;
+  const ret=document.getElementById('calcReturn').checked;
+  const vClass=document.getElementById('calcVClass').checked;
+  const res=document.getElementById('calcResult');
+
+  if (!paidMiles&&!totalMiles) { res.style.display='none'; return; }
+
+  const paid=paidMiles||totalMiles;
+  const total=totalMiles||paidMiles;
+  const cost=estimateCost(total, vClass);
+
+  let p3=paidPrice(paid, 3);
+  let p35=paidPrice(paid, 3.5);
+  if (unsociable) { p3=Math.ceil(p3*1.2/5)*5; p35=Math.ceil(p35*1.2/5)*5; }
+  if (ret) { p3*=2; p35*=2; }
+
+  const uber=Math.ceil(paid*3.8/5)*5;
+  const suggested=Math.ceil((p3+p35)/2/5)*5;
+  const margin=suggested-cost;
+
+  document.getElementById('rPaidMiles').textContent=paid+' mi';
+  document.getElementById('rTotalMiles').textContent=total+' mi';
+  document.getElementById('rCost').textContent=fmt(cost);
+  document.getElementById('rPrice3').textContent=fmt(p3);
+  document.getElementById('rPrice35').textContent=fmt(p35);
+  document.getElementById('rUber').textContent='~'+fmt(uber)+' (estimate)';
+  document.getElementById('rSuggested').textContent=fmt(suggested);
+  document.getElementById('rMargin').textContent=fmt(margin);
+
+  let notes=[];
+  if (unsociable) notes.push('20% unsociable hours uplift applied');
+  if (ret) notes.push('Return journey — both legs included');
+  if (vClass) notes.push('V-Class rate applied (60p/mile)');
+  notes.push(`C-Class: 47p/mile total · V-Class: 60p/mile total`);
+  document.getElementById('calcNotes').innerHTML=notes.join('<br>');
+  res.style.display='block';
+}
+
+// ─── FORM ─────────────────────────────────────────────────────────────────────
+function openForm(lead) {
+  document.getElementById('fEditId').value=lead?lead.id:'';
+  document.getElementById('formTitle').textContent=lead?'Edit Lead':'New Lead';
+  document.getElementById('fName').value=lead?.name||'';
+  document.getElementById('fPhone').value=lead?.phone||'';
+  document.getElementById('fSource').value=lead?.source||'Bark';
+  document.getElementById('fStatus').value=lead?.status||'New';
+  document.getElementById('fPickup').value=lead?.pickup||'';
+  document.getElementById('fDestination').value=lead?.destination||'';
+  document.getElementById('fDate').value=lead?.date||'';
+  document.getElementById('fTime').value=lead?.time||'';
+  document.getElementById('fPax').value=lead?.pax||'1-3';
+  document.getElementById('fBags').value=lead?.bags||'1';
+  document.getElementById('fPaidMiles').value=lead?.paidMiles||'';
+  document.getElementById('fMiles').value=lead?.miles||'';
+  document.getElementById('fQuote').value=lead?.quote||'';
+  document.getElementById('fVehicle').value=lead?.vehicle||'C-Class';
+  document.getElementById('fUnsociable').checked=lead?.unsociable||false;
+  document.getElementById('fReturn').checked=lead?.returnJourney||false;
+  document.getElementById('fNotes').value=lead?.notes||'';
+  document.getElementById('formModal').style.display='block';
+  document.body.style.overflow='hidden';
+  updateFormPreview();
+}
+
+function closeForm() { document.getElementById('formModal').style.display='none'; document.body.style.overflow=''; }
+
+function updateFormPreview() {
+  const miles=Number(document.getElementById('fMiles').value);
+  const paidMiles=Number(document.getElementById('fPaidMiles').value);
+  const quote=Number(document.getElementById('fQuote').value);
+  const vClass=document.getElementById('fVehicle').value==='V-Class';
+  const prev=document.getElementById('formPreview');
+  if (!miles&&!paidMiles) { prev.style.display='none'; return; }
+  const totalMiles=miles||paidMiles;
+  const cost=estimateCost(totalMiles,vClass);
+  const margin=quote?quote-cost:null;
+  prev.style.display='block';
+  const paid=paidMiles||miles;
+  prev.innerHTML=`Cost ~<span style="color:var(--red)">${fmt(cost)}</span> &nbsp;·&nbsp; At £3/mi: <span style="color:var(--gold)">${fmt(paid*3)}</span> &nbsp;·&nbsp; At £3.50/mi: <span style="color:var(--gold)">${fmt(paid*3.5)}</span>${margin!==null?' &nbsp;·&nbsp; Margin: <span style="color:var(--green)">'+fmt(margin)+'</span>':''}`;
+}
+
+async function saveLead() {
+  const name=document.getElementById('fName').value.trim();
+  if (!name) { alert('Please enter a customer name.'); return; }
+  const editId=document.getElementById('fEditId').value;
+  const lead={
+    id: editId||Date.now().toString(),
+    name, phone:document.getElementById('fPhone').value,
+    source:document.getElementById('fSource').value,
+    status:document.getElementById('fStatus').value,
+    pickup:document.getElementById('fPickup').value,
+    destination:document.getElementById('fDestination').value,
+    date:document.getElementById('fDate').value,
+    time:document.getElementById('fTime').value,
+    pax:document.getElementById('fPax').value,
+    bags:document.getElementById('fBags').value,
+    paidMiles:document.getElementById('fPaidMiles').value,
+    miles:document.getElementById('fMiles').value,
+    quote:document.getElementById('fQuote').value,
+    vehicle:document.getElementById('fVehicle').value,
+    unsociable:document.getElementById('fUnsociable').checked,
+    returnJourney:document.getElementById('fReturn').checked,
+    notes:document.getElementById('fNotes').value,
+  };
+
+  // Optimistic update
+  if (editId) { leads=leads.map(l=>l.id===editId?lead:l); }
+  else { leads.push(lead); }
+  localStorage.setItem('halo-leads-cache', JSON.stringify(leads));
+  closeForm(); render();
+
+  // Sync to Google Sheets
+  showSync('Saving to Google Sheets...', 'loading');
+  const result = editId ? await api('updateLead', { lead }) : await api('saveLead', { lead });
+  if (result.success) { showSync('Saved ✓', 'ok'); setTimeout(hideSyncBar, 2000); }
+  else { showSync('Saved locally — sync when online', 'err'); }
+}
+
+function editLead(id) { const lead=leads.find(l=>l.id?.toString()===id?.toString()); if (!lead) return; openForm(lead); }
+
+async function deleteLead(id) {
+  if (!confirm('Delete this lead?')) return;
+  leads=leads.filter(l=>l.id?.toString()!==id?.toString());
+  localStorage.setItem('halo-leads-cache', JSON.stringify(leads));
+  render();
+  showSync('Deleting...', 'loading');
+  const result=await api('deleteLead', { id });
+  if (result.success) { showSync('Deleted ✓', 'ok'); setTimeout(hideSyncBar, 2000); }
+  else showSync('Deleted locally', 'err');
+}
+
+async function updateStatus(id, status) {
+  leads=leads.map(l=>l.id?.toString()===id?.toString()?{...l,status}:l);
+  localStorage.setItem('halo-leads-cache', JSON.stringify(leads));
+  render();
+  showSync('Updating...', 'loading');
+  const result=await api('updateStatus', { id, status });
+  if (result.success) { showSync('Updated ✓', 'ok'); setTimeout(hideSyncBar, 2000); }
+  else showSync('Updated locally', 'err');
+}
+
+function setFilter(f) { activeFilter=f; renderLeads(); }
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+scriptUrl = localStorage.getItem('halo-script-url') || '';
+if (scriptUrl) { launchApp(); }
+// else config screen shows automatically
+</script>
+</body>
+</html>

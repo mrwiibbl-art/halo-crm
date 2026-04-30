@@ -346,38 +346,54 @@ function launchApp() {
 }
 
 // ─── API ──────────────────────────────────────────────────────────────────────
-async function api(action, data = {}) {
-  const payload = { action, ...data };
+
+// JSONP — bypasses CORS for GET requests (reads)
+function jsonp(action) {
+  return new Promise((resolve, reject) => {
+    const cbName = 'halo_cb_' + Date.now();
+    const script = document.createElement('script');
+    const timeout = setTimeout(() => {
+      delete window[cbName];
+      script.remove();
+      reject(new Error('Timeout'));
+    }, 10000);
+    window[cbName] = (data) => {
+      clearTimeout(timeout);
+      delete window[cbName];
+      script.remove();
+      resolve(data);
+    };
+    script.src = `${scriptUrl}?action=${action}&callback=${cbName}`;
+    document.head.appendChild(script);
+  });
+}
+
+// POST via no-cors form trick — for writes
+async function apiPost(action, data = {}) {
+  const payload = JSON.stringify({ action, ...data });
   try {
-    const res = await fetch(scriptUrl, {
+    await fetch(scriptUrl, {
       method: 'POST',
-      body: JSON.stringify(payload)
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: payload
     });
-    return await res.json();
+    return { success: true };
   } catch(e) {
-    // Fallback to GET for CORS issues
-    try {
-      const params = new URLSearchParams({ action });
-      const res = await fetch(`${scriptUrl}?${params}`);
-      return await res.json();
-    } catch(e2) {
-      return { success: false, error: e2.toString() };
-    }
+    return { success: false, error: e.toString() };
   }
 }
 
 async function loadLeads() {
   showSync('Syncing with Google Sheets...', 'loading');
   try {
-    const result = await api('getLeads');
+    const result = await jsonp('getLeads');
     if (result.success) {
       leads = result.leads || [];
-      // Also cache locally
       localStorage.setItem('halo-leads-cache', JSON.stringify(leads));
       showSync('Synced ✓', 'ok');
       setTimeout(() => hideSyncBar(), 2000);
     } else {
-      // Fall back to local cache
       const cached = localStorage.getItem('halo-leads-cache');
       if (cached) leads = JSON.parse(cached);
       showSync('Using cached data — check connection', 'err');
@@ -665,9 +681,9 @@ async function saveLead() {
 
   // Sync to Google Sheets
   showSync('Saving to Google Sheets...', 'loading');
-  const result = editId ? await api('updateLead', { lead }) : await api('saveLead', { lead });
-  if (result.success) { showSync('Saved ✓', 'ok'); setTimeout(hideSyncBar, 2000); }
-  else { showSync('Saved locally — sync when online', 'err'); }
+  await apiPost(editId ? 'updateLead' : 'saveLead', { lead });
+  showSync('Saved ✓', 'ok');
+  setTimeout(hideSyncBar, 2000);
 }
 
 function editLead(id) { const lead=leads.find(l=>l.id?.toString()===id?.toString()); if (!lead) return; openForm(lead); }
@@ -678,9 +694,9 @@ async function deleteLead(id) {
   localStorage.setItem('halo-leads-cache', JSON.stringify(leads));
   render();
   showSync('Deleting...', 'loading');
-  const result=await api('deleteLead', { id });
-  if (result.success) { showSync('Deleted ✓', 'ok'); setTimeout(hideSyncBar, 2000); }
-  else showSync('Deleted locally', 'err');
+  await apiPost('deleteLead', { id });
+  showSync('Deleted ✓', 'ok');
+  setTimeout(hideSyncBar, 2000);
 }
 
 async function updateStatus(id, status) {
@@ -688,9 +704,9 @@ async function updateStatus(id, status) {
   localStorage.setItem('halo-leads-cache', JSON.stringify(leads));
   render();
   showSync('Updating...', 'loading');
-  const result=await api('updateStatus', { id, status });
-  if (result.success) { showSync('Updated ✓', 'ok'); setTimeout(hideSyncBar, 2000); }
-  else showSync('Updated locally', 'err');
+  await apiPost('updateStatus', { id, status });
+  showSync('Updated ✓', 'ok');
+  setTimeout(hideSyncBar, 2000);
 }
 
 function setFilter(f) { activeFilter=f; renderLeads(); }
